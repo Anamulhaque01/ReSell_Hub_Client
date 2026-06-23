@@ -1,146 +1,127 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axiosInstance from '@/lib/axiosInstance';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
+// 🚀 Change this to match your EXACT running backend server address!
+const BACKEND_BASE_URL = 'http://localhost:5000';
+
+export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Initial check: Persist logged-in state across hard browser reloads
     useEffect(() => {
-        const checkUserLoggedIn = async () => {
-            if (typeof window !== 'undefined') {
-                const token = localStorage.getItem('resell_hub_token');
+        const storedUser = localStorage.getItem('reshub_user');
+        const storedToken = localStorage.getItem('reshub_token');
 
-                if (!token) {
-                    setUser(null);
-                    setLoading(false);
-                    return;
-                }
-
-                try {
-                    // Pointing to your Express backend auth profile route
-                    const response = await axiosInstance.get('/auth/me');
-                    if (response.data?.success) {
-                        setUser(response.data.user); // Contains: name, email, role, location etc.
-                    } else {
-                        localStorage.removeItem('resell_hub_token');
-                        setUser(null);
-                    }
-                } catch (error) {
-                    console.error('Auth synchronization failed:', error);
-                    localStorage.removeItem('resell_hub_token');
-                    setUser(null);
-                } finally {
-                    setLoading(false);
-                }
-            }
-        };
-
-        checkUserLoggedIn();
+        if (storedUser && storedToken) {
+            setUser(JSON.parse(storedUser));
+        }
+        setLoading(false);
     }, []);
 
-    // Login handler
-    const login = async (email, password) => {
-        setLoading(true);
+    // 1. Handle Registration with Absolute URL
+    const register = async (formData) => {
         try {
-            const response = await axiosInstance.post('/auth/login', { email, password });
-
-            if (response.data?.success && response.data?.token) {
-                localStorage.setItem('resell_hub_token', response.data.token);
-                setUser(response.data.user);
-                return { success: true, user: response.data.user };
-            } else {
-                throw new Error(response.data?.message || 'Login failed');
-            }
-        } catch (error) {
-            setUser(null);
-            return {
-                success: false,
-                message: error.response?.data?.message || error.message || 'An error occurred'
-            };
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Google Login wrapper handler
-    const loginWithGoogle = async (googleUserToken) => {
-        setLoading(true);
-        try {
-            const response = await axiosInstance.post('/auth/google', { token: googleUserToken });
-            if (response.data?.success && response.data?.token) {
-                localStorage.setItem('resell_hub_token', response.data.token);
-                setUser(response.data.user);
-                return { success: true, user: response.data.user };
-            } else {
-                throw new Error(response.data?.message || 'Google Authentication failed');
-            }
-        } catch (error) {
-            setUser(null);
-            return {
-                success: false,
-                message: error.response?.data?.message || error.message || 'Google Auth error'
-            };
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Registration handler
-    const registerUser = async (name, email, password, location) => {
-        setLoading(true);
-        try {
-            const response = await axiosInstance.post('/auth/register', {
-                name,
-                email,
-                password,
-                location,
-                role: 'buyer' // Default fallback role selection
+            const response = await fetch(`${BACKEND_BASE_URL}/api/auth/register`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
             });
 
-            if (response.data?.success && response.data?.token) {
-                localStorage.setItem('resell_hub_token', response.data.token);
-                setUser(response.data.user);
-                return { success: true, user: response.data.user };
-            } else {
-                throw new Error(response.data?.message || 'Registration failed');
+            const data = await response.json();
+
+            if (!response.ok) {
+                return {
+                    success: false,
+                    message: data.message || 'Registration failed from server side.'
+                };
             }
+
+            if (data.token && data.user) {
+                localStorage.setItem('reshub_token', data.token);
+                localStorage.setItem('reshub_user', JSON.stringify(data.user));
+                setUser(data.user);
+            }
+
+            return { success: true };
         } catch (error) {
+            console.error('Registration network error:', error);
             return {
                 success: false,
-                message: error.response?.data?.message || error.message || 'An error occurred'
+                message: 'Cannot reach the authentication server. Please verify your backend server is running.'
             };
-        } finally {
-            setLoading(false);
         }
     };
 
-    // Logout handler
-    const logout = async () => {
+    // 2. Handle Login with Absolute URL
+    const login = async (email, password) => {
         try {
-            localStorage.removeItem('resell_hub_token');
-            setUser(null);
+            const response = await fetch(`${BACKEND_BASE_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return { success: false, message: data.message || 'Invalid credentials.' };
+            }
+
+            localStorage.setItem('reshub_token', data.token);
+            localStorage.setItem('reshub_user', JSON.stringify(data.user));
+            setUser(data.user);
+
+            return { success: true };
         } catch (error) {
-            console.error('Logout tracking error:', error);
+            return { success: false, message: 'Server connection timeout.' };
         }
+    };
+
+    // 3. Handle Google Verification with Absolute URL
+    const loginWithGoogle = async (mockToken) => {
+        try {
+            const response = await fetch(`${BACKEND_BASE_URL}/api/auth/google`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token: mockToken }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return { success: false, message: data.message || 'Google Auth Failed.' };
+            }
+
+            localStorage.setItem('reshub_token', data.token);
+            localStorage.setItem('reshub_user', JSON.stringify(data.user));
+            setUser(data.user);
+
+            return { success: true };
+        } catch (error) {
+            return { success: false, message: 'Google Authentication routing error.' };
+        }
+    };
+
+    const logout = () => {
+        localStorage.removeItem('reshub_token');
+        localStorage.removeItem('reshub_user');
+        setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, registerUser, logout }}>
-            {children}
+        <AuthContext.Provider value={{ user, loading, register, login, loginWithGoogle, logout }}>
+            {!loading && children}
         </AuthContext.Provider>
     );
-};
+}
 
-// Custom Hook for scannable implementation across client elements
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be wrapped within an AuthProvider setup');
-    }
-    return context;
-};
+export const useAuth = () => useContext(AuthContext);
