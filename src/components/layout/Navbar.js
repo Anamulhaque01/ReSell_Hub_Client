@@ -30,8 +30,8 @@ export default function Navbar() {
     return (
         /* Force Javascript-driven class strings to fully handle background variables instead of relying on default cascades */
         <nav className={`w-full px-8 py-3 border-b sticky top-0 z-50 select-none transition-colors duration-200 ${theme === 'dark'
-                ? 'bg-[#09090b] border-neutral-900 text-white'
-                : 'bg-white border-neutral-200 text-neutral-900'
+            ? 'bg-[#09090b] border-neutral-900 text-white'
+            : 'bg-white border-neutral-200 text-neutral-900'
             }`}>
             <div className="max-w-7xl mx-auto flex items-center justify-between h-12">
 
@@ -54,8 +54,8 @@ export default function Navbar() {
                                 key={link.name}
                                 href={link.href}
                                 className={`text-sm font-medium px-4 py-2 rounded-md transition-colors ${isActive
-                                        ? theme === 'dark' ? 'bg-[#16224f] text-white' : 'bg-[#e0e7ff] text-[#2563eb]'
-                                        : theme === 'dark' ? 'text-neutral-300 hover:text-white' : 'text-neutral-600 hover:text-neutral-900'
+                                    ? theme === 'dark' ? 'bg-[#16224f] text-white' : 'bg-[#e0e7ff] text-[#2563eb]'
+                                    : theme === 'dark' ? 'text-neutral-300 hover:text-white' : 'text-neutral-600 hover:text-neutral-900'
                                     }`}
                             >
                                 {link.name}
@@ -99,13 +99,27 @@ export default function Navbar() {
                             <button
                                 onClick={() => setDropdownOpen(!dropdownOpen)}
                                 className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-colors border ${theme === 'dark'
-                                        ? 'bg-[#141416] border-neutral-800/80 text-neutral-200 hover:bg-neutral-800/50'
-                                        : 'bg-neutral-100 border-neutral-200 text-neutral-700 hover:bg-neutral-200/60'
+                                    ? 'bg-[#141416] border-neutral-800/80 text-neutral-200 hover:bg-neutral-800/50'
+                                    : 'bg-neutral-100 border-neutral-200 text-neutral-700 hover:bg-neutral-200/60'
                                     }`}
                             >
-                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2563eb] text-white font-bold text-[11px]">
-                                    {getInitials(user.name)}
-                                </div>
+                                {/* 📸 Conditional Check: Renders image if available, else falls back cleanly to initials */}
+                                {user.image ? (
+                                    <img
+                                        src={user.image}
+                                        alt={user.name || "User profile"}
+                                        className="h-6 w-6 rounded-full object-cover border border-neutral-300 dark:border-neutral-700"
+                                        onError={(e) => {
+                                            // Handle broken avatar image URLs gracefully by turning off image view
+                                            e.target.style.display = 'none';
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2563eb] text-white font-bold text-[11px]">
+                                        {getInitials(user.name)}
+                                    </div>
+                                )}
+
                                 <span className="text-sm font-medium capitalize">
                                     {user.role || 'User'}
                                 </span>
@@ -114,7 +128,7 @@ export default function Navbar() {
                                 </svg>
                             </button>
 
-                            {/* Flyout Dropdown Panel Content [cite: 130] */}
+                            {/* Flyout Dropdown Panel Content */}
                             {dropdownOpen && (
                                 <>
                                     <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
@@ -132,7 +146,7 @@ export default function Navbar() {
 
                                         <div className="border-t border-neutral-200 dark:border-neutral-800/80 my-2" />
 
-                                        {/* Operational Routes [cite: 139, 140] */}
+                                        {/* Operational Routes */}
                                         <div className="space-y-1">
                                             <Link
                                                 href="/dashboard"
@@ -152,13 +166,13 @@ export default function Navbar() {
                                                 <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                                 </svg>
-                                                My Profile [cite: 139]
+                                                My Profile
                                             </Link>
                                         </div>
 
                                         <div className="border-t border-neutral-200 dark:border-neutral-800/80 my-2" />
 
-                                        {/* Exit Signout Trigger [cite: 141] */}
+                                        {/* Exit Signout Trigger */}
                                         <button
                                             onClick={() => { setDropdownOpen(false); logout(); }}
                                             type="button"
@@ -167,7 +181,7 @@ export default function Navbar() {
                                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                                             </svg>
-                                            Sign Out [cite: 141]
+                                            Sign Out
                                         </button>
 
                                     </div>
